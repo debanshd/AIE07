@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Tuple
 
 
 class TextFileLoader:
@@ -20,16 +20,17 @@ class TextFileLoader:
 
     def load_file(self):
         with open(self.path, "r", encoding=self.encoding) as f:
-            self.documents.append(f.read())
+            self.documents.append((f.read(), {"source": self.path}))
 
     def load_directory(self):
         for root, _, files in os.walk(self.path):
             for file in files:
                 if file.endswith(".txt"):
+                    file_path = os.path.join(root, file)
                     with open(
-                        os.path.join(root, file), "r", encoding=self.encoding
+                        file_path, "r", encoding=self.encoding
                     ) as f:
-                        self.documents.append(f.read())
+                        self.documents.append((f.read(), {"source": file_path}))
 
     def load_documents(self):
         self.load()
@@ -49,16 +50,16 @@ class CharacterTextSplitter:
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
 
-    def split(self, text: str) -> List[str]:
+    def split(self, text: str, metadata: dict) -> List[Tuple[str, dict]]:
         chunks = []
         for i in range(0, len(text), self.chunk_size - self.chunk_overlap):
-            chunks.append(text[i : i + self.chunk_size])
+            chunks.append((text[i : i + self.chunk_size], metadata))
         return chunks
 
-    def split_texts(self, texts: List[str]) -> List[str]:
+    def split_texts(self, documents: List[Tuple[str, dict]]) -> List[Tuple[str, dict]]:
         chunks = []
-        for text in texts:
-            chunks.extend(self.split(text))
+        for text, metadata in documents:
+            chunks.extend(self.split(text, metadata))
         return chunks
 
 
