@@ -1,0 +1,170 @@
+<div class="container">
+  <header>
+    <h1>{{ title }}</h1>
+    <p>Upload PDF or CSV documents to generate synthetic data using LangGraph and Evol Instruct</p>
+  </header>
+
+  <main>
+    <!-- Loading State -->
+    <div *ngIf="isCheckingApiKey" class="loading">
+      <p>🔍 Checking API key status...</p>
+    </div>
+
+    <!-- API Key Section - Always show initially -->
+    <section class="api-key-section" *ngIf="!isCheckingApiKey && !hasApiKey">
+      <h2>🔑 Set OpenAI API Key</h2>
+      <div class="api-key-form">
+        <input 
+          type="password" 
+          [(ngModel)]="apiKey" 
+          placeholder="Enter your OpenAI API key"
+          class="api-key-input"
+        >
+        <button 
+          (click)="setApiKey()" 
+          [disabled]="isSettingApiKey || !apiKey.trim()"
+          class="api-key-btn"
+        >
+          {{ isSettingApiKey ? 'Setting...' : 'Set API Key' }}
+        </button>
+      </div>
+      <p class="api-key-info">
+        Your API key is required to process documents. It will be stored securely for this session.
+      </p>
+    </section>
+
+    <!-- API Key Status -->
+    <section class="api-key-status" *ngIf="!isCheckingApiKey && hasApiKey">
+      <h2>✅ API Key Set</h2>
+      <p>Your API key is configured and ready to use.</p>
+      <button (click)="checkApiKeyStatus()" class="refresh-btn">Refresh Status</button>
+    </section>
+
+    <!-- File Upload Section -->
+    <section class="upload-section" *ngIf="!isCheckingApiKey && hasApiKey">
+      <h2>📄 Upload Documents</h2>
+      <div class="upload-area">
+        <input 
+          type="file" 
+          multiple 
+          accept=".pdf,.csv" 
+          (change)="onFileSelected($event)"
+          class="file-input"
+        >
+        <p>Select PDF or CSV files to process</p>
+      </div>
+      
+      <div *ngIf="selectedFiles.length > 0" class="selected-files">
+        <h3>Selected Files:</h3>
+        <ul>
+          <li *ngFor="let file of selectedFiles">{{ file.name }}</li>
+        </ul>
+        <button 
+          (click)="uploadFiles()" 
+          [disabled]="isUploading"
+          class="upload-btn"
+        >
+          {{ isUploading ? 'Processing...' : 'Process Documents' }}
+        </button>
+      </div>
+    </section>
+
+    <!-- Error Display -->
+    <div *ngIf="errorMessage" class="error">
+      <p>❌ {{ errorMessage }}</p>
+    </div>
+
+    <!-- Progress Tracking -->
+    <section *ngIf="currentProgress" class="progress-section">
+      <h2>🔄 Processing Progress</h2>
+      <div class="progress-container">
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="currentProgress.percentage"></div>
+        </div>
+        <div class="progress-details">
+          <div class="progress-step">
+            <strong>Step {{ currentProgress.step_number }}/{{ currentProgress.total_steps }}:</strong> {{ currentProgress.step }}
+          </div>
+          <div class="progress-detail">{{ currentProgress.details }}</div>
+          <div class="progress-status">
+            <span class="status-badge" [class]="currentProgress.status">
+              {{ currentProgress.status === 'completed' ? '✅ Complete' : 
+                 currentProgress.status === 'error' ? '❌ Error' : 
+                 currentProgress.status === 'processing_pipeline' ? '🔄 Processing' : '⏳ Starting' }}
+            </span>
+            <span class="progress-percentage">{{ currentProgress.percentage }}%</span>
+          </div>
+        </div>
+
+        <!-- 🤖 ENHANCED: Agent Steps List -->
+        <div *ngIf="currentProgress.agent_steps && currentProgress.agent_steps.length > 0" class="agent-steps-section">
+          <h3>🤖 AI Agent Activity Log ({{ currentProgress.total_agent_steps }} steps)</h3>
+          <div class="agent-steps-list">
+            <div *ngFor="let agentStep of currentProgress.agent_steps" class="agent-step-item" [class]="agentStep.status">
+              <div class="agent-step-header">
+                <span class="agent-step-id">Step {{ agentStep.step_id }}</span>
+                <span class="agent-type">{{ getAgentTypeIcon(agentStep.agent_type || '') }} {{ agentStep.agent_type?.toUpperCase() || 'SYSTEM' }}</span>
+                <span class="agent-status" [class]="agentStep.status">{{ getStatusIcon(agentStep.status) }}</span>
+                <span class="agent-timestamp">{{ formatTime(agentStep.timestamp) }}</span>
+              </div>
+              <div class="agent-step-details">{{ agentStep.details }}</div>
+              <div *ngIf="agentStep.agent_message" class="agent-message">💬 {{ agentStep.agent_message }}</div>
+              <div *ngIf="agentStep.question_preview" class="question-preview">📝 {{ agentStep.question_preview }}</div>
+              <div *ngIf="agentStep.context_preview" class="context-preview">📄 {{ agentStep.context_preview }}</div>
+              <div *ngIf="agentStep.error" class="agent-error">⚠️ {{ agentStep.error }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Debug info -->
+        <div style="margin-top: 10px; font-size: 12px; color: #666;">
+          Task ID: {{ currentTaskId }} | Status: {{ currentProgress.status }}
+        </div>
+      </div>
+    </section>
+
+    <!-- Debug Progress Info -->
+    <div *ngIf="!currentProgress && isUploading" class="debug-info">
+      <p>⏳ Upload in progress... Waiting for progress updates</p>
+    </div>
+
+    <!-- Completion Message -->
+    <section *ngIf="currentProgress?.status === 'completed' && !processingResults" class="completion-section">
+      <h2>✅ Processing Complete</h2>
+      <p>Loading results...</p>
+    </section>
+
+    <!-- Results Display -->
+    <section *ngIf="processingResults" class="results-section">
+      <h2>📊 Results</h2>
+      
+      <!-- Evolution Distribution -->
+      <div class="evolution-distribution">
+        <h3>Evolution Types:</h3>
+        <div class="distribution">
+          <span *ngFor="let type of processingResults.validation_metrics.evolution_type_distribution | keyvalue">
+            {{ type.key }}: {{ type.value }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Questions and Answers -->
+      <div class="questions-list">
+        <h3>Evolved Questions & Answers:</h3>
+        <div *ngFor="let question of processingResults.evolved_questions" class="question-item">
+          <div class="question-header">
+            <strong>{{ question.question }}</strong>
+            <span class="evolution-type">{{ question.evolution_type }}</span>
+            <span class="quality-score">Quality: {{ question.quality_score }}</span>
+          </div>
+          <div class="answer">
+            <strong>Answer:</strong> {{ getAnswerForQuestion(question.id) }}
+          </div>
+          <div class="context">
+            <strong>Context:</strong> {{ getContextForQuestion(question.id) }}
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div> 

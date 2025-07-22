@@ -1,0 +1,25 @@
+# Ignore large data files
+data/
+loan_data_kg.json
+graph.png
+output.png
+Synthetic_Data_Generation_RAGAS_&_LangSmith_Assignment.ipynb
+*.pdf
+*.csv
+
+# Ignore Python virtual environment
+.venv/
+__pycache__/
+*.pyc
+
+# Ignore development files
+langgraph-evol-instruct-mvp/
+*.log
+.DS_Store
+
+# Ignore git files
+.git/
+.gitignore
+
+# Ignore lock files
+uv.lock 
