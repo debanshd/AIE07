@@ -1,0 +1,11 @@
+{
+  "buildCommand": "cd frontend && npm install && npm run build:vercel",
+  "outputDirectory": "frontend/dist/langgraph-evol-instruct-frontend",
+  "installCommand": "cd frontend && npm install",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+} 

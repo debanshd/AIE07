@@ -7,6 +7,9 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:prod": "ng build --configuration production",
+    "build:railway": "ng build --configuration railway",
+    "build:vercel": "ng build --configuration vercel",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
@@ -28,6 +31,7 @@
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^16.0.0",
+    "serve": "^14.2.1",
     "@angular/cli": "^16.0.0",
     "@angular/compiler-cli": "^16.0.0",
     "@types/jasmine": "~4.3.0",

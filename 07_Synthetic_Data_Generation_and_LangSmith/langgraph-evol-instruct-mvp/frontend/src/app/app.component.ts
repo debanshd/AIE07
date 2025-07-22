@@ -26,6 +26,10 @@ export class AppComponent implements OnInit {
   progressInterval: any = null;
   currentTaskId: string | null = null;
 
+  // Tab management
+  activeTab: string = 'all';
+  tabs: any[] = [];
+
   constructor(private appService: AppService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
@@ -126,6 +130,7 @@ export class AppComponent implements OnInit {
       next: (results) => {
         console.log('Results loaded successfully:', results);
         this.processingResults = results;
+        this.initializeTabs(); // Initialize tabs when results are loaded
         this.cdr.detectChanges(); // Force UI update
       },
       error: (error) => {
@@ -141,10 +146,85 @@ export class AppComponent implements OnInit {
     return answer ? answer.answer : 'No answer available';
   }
 
-  getContextForQuestion(questionId: string): string {
-    if (!this.processingResults) return '';
+  getContextForQuestion(questionId: string): any {
+    if (!this.processingResults) return null;
     const context = this.processingResults.contexts.find(c => c.question_id === questionId);
+    return context || null;
+  }
+  
+  getContextText(questionId: string): string {
+    const context = this.getContextForQuestion(questionId);
     return context ? context.context : 'No context available';
+  }
+  
+  isMultiContext(questionId: string): boolean {
+    const context = this.getContextForQuestion(questionId);
+    return context ? context.is_multi_context || false : false;
+  }
+  
+  getContextArray(questionId: string): string[] {
+    const context = this.getContextForQuestion(questionId);
+    return context && context.contexts ? context.contexts : [];
+  }
+
+  // Tab management methods
+  initializeTabs(): void {
+    if (!this.processingResults) return;
+
+    const questions = this.processingResults.evolved_questions;
+    const simpleCount = questions.filter(q => q.evolution_type === 'simple').length;
+    const multiContextCount = questions.filter(q => q.evolution_type === 'multi_context').length;
+    const reasoningCount = questions.filter(q => q.evolution_type === 'reasoning').length;
+    const totalCount = questions.length;
+
+    this.tabs = [
+      {
+        id: 'all',
+        label: 'All Questions',
+        icon: '📊',
+        count: totalCount
+      },
+      {
+        id: 'simple',
+        label: 'Simple',
+        icon: '📝',
+        count: simpleCount
+      },
+      {
+        id: 'multi_context',
+        label: 'Multi-Context',
+        icon: '🔄',
+        count: multiContextCount
+      },
+      {
+        id: 'reasoning',
+        label: 'Reasoning',
+        icon: '🧠',
+        count: reasoningCount
+      }
+    ];
+
+    // Set default active tab to the first one with questions
+    if (totalCount > 0) {
+      this.activeTab = 'all';
+    }
+  }
+
+  getFilteredQuestions(): any[] {
+    if (!this.processingResults) return [];
+
+    const questions = this.processingResults.evolved_questions;
+    
+    if (this.activeTab === 'all') {
+      return questions;
+    }
+    
+    return questions.filter(q => q.evolution_type === this.activeTab);
+  }
+
+  getActiveTabLabel(): string {
+    const activeTabData = this.tabs.find(t => t.id === this.activeTab);
+    return activeTabData ? activeTabData.label.toLowerCase() : 'questions';
   }
 
   startProgressTracking(taskId: string): void {

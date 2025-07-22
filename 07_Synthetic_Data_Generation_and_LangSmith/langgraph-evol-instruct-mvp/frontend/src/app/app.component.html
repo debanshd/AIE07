@@ -148,20 +148,48 @@
         </div>
       </div>
 
-      <!-- Questions and Answers -->
+      <!-- Questions and Answers with Tabs -->
       <div class="questions-list">
         <h3>Evolved Questions & Answers:</h3>
-        <div *ngFor="let question of processingResults.evolved_questions" class="question-item">
-          <div class="question-header">
-            <strong>{{ question.question }}</strong>
-            <span class="evolution-type">{{ question.evolution_type }}</span>
-            <span class="quality-score">Quality: {{ question.quality_score }}</span>
+        
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+          <button 
+            *ngFor="let tab of tabs" 
+            (click)="activeTab = tab.id"
+            [class]="'tab-button ' + (activeTab === tab.id ? 'active' : '')"
+          >
+            {{ tab.icon }} {{ tab.label }} ({{ tab.count }})
+          </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+          <div *ngFor="let question of getFilteredQuestions()" class="question-item">
+            <div class="question-header">
+              <strong>{{ question.question }}</strong>
+              <span class="evolution-type">{{ question.evolution_type }}</span>
+              <span class="quality-score">Quality: {{ question.quality_score }}</span>
+            </div>
+            <div class="answer">
+              <strong>Answer:</strong> {{ getAnswerForQuestion(question.id) }}
+            </div>
+            <div class="context">
+              <strong>Context{{ isMultiContext(question.id) ? 's' : '' }}:</strong>
+              <div *ngIf="!isMultiContext(question.id)" class="single-context">
+                {{ getContextText(question.id) }}
+              </div>
+              <div *ngIf="isMultiContext(question.id)" class="multi-contexts">
+                <div *ngFor="let ctx of getContextArray(question.id); let i = index" class="context-section">
+                  <strong>Section {{ i + 1 }}:</strong> {{ ctx }}
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="answer">
-            <strong>Answer:</strong> {{ getAnswerForQuestion(question.id) }}
-          </div>
-          <div class="context">
-            <strong>Context:</strong> {{ getContextForQuestion(question.id) }}
+          
+          <!-- Empty state for no questions -->
+          <div *ngIf="getFilteredQuestions().length === 0" class="empty-state">
+            <p>No {{ getActiveTabLabel() }} questions found.</p>
           </div>
         </div>
       </div>

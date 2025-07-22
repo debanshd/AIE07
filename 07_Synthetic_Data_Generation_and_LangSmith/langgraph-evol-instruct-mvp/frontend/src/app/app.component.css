@@ -200,6 +200,101 @@ h3 {
   margin-top: 20px;
 }
 
+/* Tab Navigation Styles */
+.tab-navigation {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #ecf0f1;
+  padding-bottom: 10px;
+}
+
+.tab-button {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  padding: 12px 20px;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.tab-button:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  transform: translateY(-2px);
+}
+
+.tab-button.active {
+  background: #3498db;
+  color: white;
+  border-color: #3498db;
+  border-bottom: 2px solid #3498db;
+  margin-bottom: -2px;
+}
+
+.tab-button.active:hover {
+  background: #2980b9;
+  transform: none;
+}
+
+.tab-content {
+  margin-top: 10px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #dee2e6;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* Responsive Tab Styles */
+@media (max-width: 768px) {
+  .tab-navigation {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  
+  .tab-button {
+    min-width: 100px;
+    padding: 10px 16px;
+    font-size: 13px;
+    flex: 1;
+  }
+  
+  .tab-button span {
+    display: none; /* Hide icons on mobile for space */
+  }
+}
+
+@media (max-width: 480px) {
+  .tab-navigation {
+    flex-direction: column;
+  }
+  
+  .tab-button {
+    min-width: auto;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .question-item {
   border: 1px solid #ecf0f1;
   border-radius: 8px;
@@ -245,6 +340,34 @@ h3 {
   border-left-color: #e67e22;
   font-size: 0.9rem;
   color: #666;
+}
+
+.multi-contexts {
+  margin-top: 8px;
+}
+
+.context-section {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-left: 3px solid #e67e22;
+}
+
+.context-section:last-child {
+  margin-bottom: 0;
+}
+
+.context-section strong {
+  color: #495057;
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+}
+
+.single-context {
+  margin-top: 4px;
 }
 
 .loading {

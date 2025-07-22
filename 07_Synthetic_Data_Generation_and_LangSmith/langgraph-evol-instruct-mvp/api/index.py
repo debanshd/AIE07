@@ -149,25 +149,38 @@ async def upload_documents(
             }
         ]
         
-        # Mock contexts
+        # Mock contexts - demonstrating multi-context support
         contexts = [
             {
                 "question_id": "ev_001",
                 "context": "Title IV of the Higher Education Act of 1965 authorizes federal student aid programs...",
+                "contexts": ["Title IV of the Higher Education Act of 1965 authorizes federal student aid programs..."],
                 "source_document": files[0].filename if files else "uploaded_document.pdf",
-                "page_number": 5
+                "page_number": 5,
+                "context_count": 1,
+                "is_multi_context": False
             },
             {
                 "question_id": "ev_002",
                 "context": "Clinical work conducted outside the classroom may not be included in a standard term unless...",
+                "contexts": ["Clinical work conducted outside the classroom may not be included in a standard term unless..."],
                 "source_document": files[0].filename if files else "uploaded_document.pdf",
-                "page_number": 12
+                "page_number": 12,
+                "context_count": 1,
+                "is_multi_context": False
             },
             {
                 "question_id": "ev_003",
-                "context": "Academic calendars vary by institution and can include semester, quarter, or trimester systems...",
+                "context": "Academic calendars vary by institution and can include semester, quarter, or trimester systems... | Pell Grant calculations are affected by academic calendar structure... | Different institutions may have varying payment periods...",
+                "contexts": [
+                    "Academic calendars vary by institution and can include semester, quarter, or trimester systems. Each system affects how financial aid is calculated and disbursed throughout the academic year.",
+                    "Pell Grant calculations are affected by academic calendar structure, with semester systems typically having two payment periods while quarter systems may have three or four payment periods.",
+                    "Different institutions may have varying payment periods that must align with federal regulations for Title IV aid disbursement and student enrollment status."
+                ],
                 "source_document": files[0].filename if files else "uploaded_document.pdf",
-                "page_number": 8
+                "page_number": 8,
+                "context_count": 3,
+                "is_multi_context": True
             }
         ]
         

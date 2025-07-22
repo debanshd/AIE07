@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../environments/environment';
 
 export interface UploadResponse {
   message: string;
@@ -49,9 +50,11 @@ export interface ProgressUpdate {
   providedIn: 'root'
 })
 export class AppService {
-  private apiUrl = 'https://langgraph-backend-clean-production.up.railway.app';
+  private apiUrl = environment.apiUrl;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) { 
+    console.log('API URL configured for:', this.apiUrl);
+  }
 
   setApiKey(apiKey: string): Observable<any> {
     const formData = new FormData();

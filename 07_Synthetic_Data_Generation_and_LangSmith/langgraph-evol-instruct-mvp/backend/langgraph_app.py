@@ -162,30 +162,62 @@ class LangGraphEvolInstruct:
     
     def multi_context_evolution(self, question: str, chunks: List[Document]) -> str:
         """Multi-context evolution: questions requiring multiple sections"""
-        context_summary = " ".join([chunk.page_content[:200] for chunk in chunks[:3]])
+        # Use multiple chunks for better context diversity
+        if len(chunks) >= 3:
+            selected_chunks = chunks[:3]  # Use first 3 chunks
+        else:
+            selected_chunks = chunks  # Use all available chunks
+        
+        context_summaries = []
+        for i, chunk in enumerate(selected_chunks):
+            section_text = chunk.page_content[:300]  # Increased context length
+            context_summaries.append(f"Section {i+1}: {section_text}...")
+        
+        context_summary = "\n\n".join(context_summaries)
+        
         prompt = f"""
         Evolve this question to require information from multiple document sections:
         Original: {question}
         
-        Context from multiple sections: {context_summary}
+        Context from multiple sections:
+        {context_summary}
         
-        Create a question that requires combining information from different parts.
+        Create a question that requires combining and synthesizing information from these different sections.
+        The question should explicitly require cross-referencing multiple parts of the document.
         Return only the evolved question.
         """
         response = self.llm.invoke(prompt)
         return response.content.strip()
     
-    def reasoning_evolution(self, question: str) -> str:
-        """Reasoning evolution: questions requiring logical reasoning"""
+    def reasoning_evolution(self, question: str, chunks: List[Document]) -> str:
+        """Reasoning evolution: questions requiring logical reasoning across multiple contexts"""
+        # Use 2-3 chunks for reasoning context
+        if len(chunks) >= 2:
+            selected_chunks = chunks[:min(3, len(chunks))]
+        else:
+            selected_chunks = chunks
+        
+        context_summaries = []
+        for i, chunk in enumerate(selected_chunks):
+            section_text = chunk.page_content[:250]  # Shorter than multi-context for focus
+            context_summaries.append(f"Context {i+1}: {section_text}...")
+        
+        context_summary = "\n\n".join(context_summaries)
+        
         prompt = f"""
-        Evolve this question to require logical reasoning:
+        Evolve this question to require logical reasoning and analysis:
         Original: {question}
         
-        Create a question that requires:
-        - Cause-and-effect analysis
-        - Conditional scenarios
-        - Decision-making reasoning
+        Available contexts for reasoning:
+        {context_summary}
         
+        Create a question that requires:
+        - Cause-and-effect analysis across the provided contexts
+        - Logical deduction and inference
+        - Understanding underlying methodologies or reasoning
+        - Conditional scenarios and decision-making
+        
+        The question should require analytical thinking that draws connections and insights from the evidence provided.
         Return only the evolved question.
         """
         response = self.llm.invoke(prompt)
@@ -238,8 +270,8 @@ class LangGraphEvolInstruct:
                         evolved_q = self.multi_context_evolution(question, chunks)
                         agent_action = "Integrated multiple document contexts for comprehensive questioning"
                     else:  # reasoning
-                        evolved_q = self.reasoning_evolution(question)
-                        agent_action = "Enhanced with logical reasoning and analytical depth"
+                        evolved_q = self.reasoning_evolution(question, chunks)
+                        agent_action = "Enhanced with logical reasoning and analytical depth across multiple contexts"
                     
                     # Log the AI agent's successful work
                     self.add_agent_step({
@@ -262,7 +294,7 @@ class LangGraphEvolInstruct:
                     elif evolution_type == "multi_context":
                         evolved_q = f"Considering multiple perspectives and contexts, how would you approach: {question}"
                     else:  # reasoning
-                        evolved_q = f"What is the underlying reasoning and methodology behind: {question}"
+                        evolved_q = f"What is the underlying reasoning and methodology behind: {question} (analyze across multiple evidence sources)"
                     
                     self.add_agent_step({
                         "step": "Evolving Questions", 
@@ -396,6 +428,7 @@ class LangGraphEvolInstruct:
         
         for i, question_data in enumerate(evolved_questions):
             question = question_data["question"]
+            evolution_type = question_data.get("evolution_type", "simple")
             
             # Update progress for context matching
             if self.progress_callback:
@@ -408,25 +441,71 @@ class LangGraphEvolInstruct:
                     "timestamp": datetime.now().isoformat()
                 })
             
-            # Find most relevant chunk for this question (removed artificial delay)
-            relevant_chunk = chunks[i % len(chunks)] if chunks else chunks[0]
-            
-            contexts.append({
-                "question_id": question_data["id"],
-                "context": relevant_chunk.page_content[:500] + "...",
-                "source_document": relevant_chunk.metadata.get("source", "document"),
-                "page_number": relevant_chunk.metadata.get("page", 1),
-                "relevance_score": 0.92 - (i * 0.02)  # Simulate relevance scoring
-            })
+            # Determine context strategy based on evolution type
+            if evolution_type in ["multi_context", "reasoning"] and len(chunks) >= 2:
+                # Multi-context: 3 chunks for breadth
+                # Reasoning: 2-3 chunks for analytical depth
+                num_contexts = 3 if evolution_type == "multi_context" else min(3, 2 + (i % 2))
+                
+                selected_chunks = []
+                chunk_indices = [(i + j) % len(chunks) for j in range(num_contexts)]
+                
+                for idx in chunk_indices:
+                    if idx < len(chunks):
+                        selected_chunks.append(chunks[idx])
+                
+                # Create multiple context entries for the same question
+                all_contexts = []
+                for j, chunk in enumerate(selected_chunks):
+                    context_text = chunk.page_content[:500]
+                    if len(chunk.page_content) > 500:
+                        context_text += "..."
+                    all_contexts.append(context_text)
+                
+                # Store as a single entry with combined contexts
+                contexts.append({
+                    "question_id": question_data["id"],
+                    "context": " | ".join(all_contexts),  # Combine multiple contexts
+                    "contexts": all_contexts,  # Also store as separate array
+                    "source_document": selected_chunks[0].metadata.get("source", "document"),
+                    "page_number": selected_chunks[0].metadata.get("page", 1),
+                    "relevance_score": 0.92 - (i * 0.02),
+                    "context_count": len(selected_chunks),
+                    "is_multi_context": True
+                })
+            else:
+                # Single context for simple questions only
+                relevant_chunk = chunks[i % len(chunks)] if chunks else chunks[0]
+                context_text = relevant_chunk.page_content[:500]
+                if len(relevant_chunk.page_content) > 500:
+                    context_text += "..."
+                
+                contexts.append({
+                    "question_id": question_data["id"],
+                    "context": context_text,
+                    "contexts": [context_text],  # Keep consistent structure
+                    "source_document": relevant_chunk.metadata.get("source", "document"),
+                    "page_number": relevant_chunk.metadata.get("page", 1),
+                    "relevance_score": 0.92 - (i * 0.02),
+                    "context_count": 1,
+                    "is_multi_context": False
+                })
             
             # Update progress after context matching
             if self.progress_callback:
+                context_count = len(contexts[-1].get("contexts", []))
+                context_description = {
+                    "simple": "single",
+                    "multi_context": "multiple", 
+                    "reasoning": "analytical"
+                }.get(evolution_type, "")
+                
                 self.progress_callback({
                     "step": "Matching Contexts",
                     "step_number": 5,
                     "total_steps": 7,
                     "percentage": int((5 + ((i + 1) / total_questions) * 0.3) * 100 / 7),
-                    "details": f"Matched context {i+1}/{total_questions} from {relevant_chunk.metadata.get('source', 'document')}",
+                    "details": f"Matched {context_count} {context_description} context(s) for {evolution_type} question {i+1}/{total_questions}",
                     "timestamp": datetime.now().isoformat()
                 })
         
